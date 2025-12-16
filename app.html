@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Varsha Fruits & Goods</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    :root{--p:#0d9488;--pl:#ccfbf1;--g1:#f8fafc;--g2:#e2e8f0;--g8:#1e293b;--s:#10b981;--d:#ef4444;}
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Inter',sans-serif;background:var(--g1);color:var(--g8);min-height:100vh;}
+    header{background:white;padding:18px 30px;box-shadow:0 4px 20px rgba(0,0,0,.08);position:sticky;top:0;z-index:100;display:flex;justify-content:space-between;align-items:center;}
+    .logo{font-size:26px;font-weight:700;color:var(--p);}
+    nav{background:var(--g8);padding:0 30px;overflow-x:auto;white-space:nowrap;}
+    nav a{display:inline-block;color:white;padding:18px 28px;text-decoration:none;font-weight:500;transition:.3s;}
+    nav a:hover,nav a.active{background:var(--p);}
+    .container{padding:30px;max-width:1400px;margin:auto;}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;margin-bottom:40px;}
+    .card{background:white;border-radius:18px;padding:28px;box-shadow:0 10px 30px rgba(0,0,0,.08);}
+    .card h3{font-size:14px;color:#64748b;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;}
+    .card h2{font-size:36px;font-weight:700;}
+    table{width:100%;border-collapse:collapse;background:white;border-radius:18px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.08);margin:20px 0;}
+    th{background:var(--p);color:white;padding:18px;text-align:left;}
+    td{padding:16px;border-bottom:1px solid var(--g2);}
+    tr:hover{background:var(--pl);}
+    button{padding:12px 24px;border:none;border-radius:12px;font-weight:600;cursor:pointer;margin:5px;}
+    .btn-p{background:var(--p);color:white;}
+    .btn-s{background:var(--s);color:white;}
+    .btn-d{background:var(--d);color:white;}
+    .fab{position:fixed;bottom:30px;right:30px;width:66px;height:66px;background:var(--p);color:white;border-radius:50%;font-size:30px;box-shadow:0 12px 35px rgba(13,148,136,.5);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:1000;}
+    input,select{padding:12px 16px;border:1px solid var(--g2);border-radius:12px;margin:8px 0;font-size:15px;}
+    .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;background:white;padding:24px;border-radius:16px;margin:20px 0;}
+    .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;}
+    .modal-content{background:white;padding:30px;border-radius:20px;width:90%;max-width:600px;}
+    .tab-content{display:none;}
+    .tab-content.active{display:block;}
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><img src="assets/varsha.png" alt="Logo" style="width:26px;height:26px;margin-right:8px;vertical-align:middle;"> Varsha Fruits & Goods</div>
+  <div style="font-weight:600;">
+    <span id="role" style="color:var(--p);"></span> • <span id="username"></span>
+    <button onclick="logout()" style="margin-left:20px;background:none;color:#64748b;border:none;cursor:pointer;">Logout</button>
+  </div>
+</header>
+
+<nav>
+  <a href="#dashboard" class="active" onclick="openTab('dashboard')">Dashboard</a>
+  <a href="#inventory" onclick="openTab('inventory')">Inventori</a>
+  <a href="#purchase" onclick="openTab('purchase')">Pembelian</a>
+  <a href="#sales" onclick="openTab('sales')">Penjualan</a>
+  <a href="#report" onclick="openTab('report')">Laporan</a>
+  <a href="#data" onclick="openTab('data')">Data</a>
+</nav>
+
+<div class="container">
+
+  <!-- DASHBOARD -->
+  <div id="dashboard" class="tab-content active">
+    <h2 style="margin-bottom:24px;font-size:28px;">Dashboard Hari Ini</h2>
+    <div class="grid">
+      <div class="card"><h3>Total Barang</h3><h2 id="totalItems">0</h2></div>
+      <div class="card"><h3>Stok Rendah</h3><h2 id="lowStock" style="color:var(--d);">0</h2></div>
+      <div class="card"><h3>Penjualan Hari Ini</h3><h2 id="todaySales" style="color:var(--s);">Rp 0</h2></div>
+      <div class="card"><h3>Laba Hari Ini</h3><h2 id="todayProfit" style="color:var(--s);">Rp 0</h2></div>
+    </div>
+  </div>
+
+  <!-- INVENTORY -->
+  <div id="inventory" class="tab-content">
+    <div style="margin-bottom:20px;">
+      <button class="btn-p" onclick="openModal()">+ Tambah Barang</button>
+      <input type="text" id="searchItem" placeholder="Cari barang..." onkeyup="filterInventory()" style="width:300px;margin-left:20px;">
+    </div>
+    <table id="inventoryTable">
+      <thead><tr><th>Kode</th><th>Nama</th><th>Stok</th><th>Harga Beli</th><th>Harga Jual</th><th>Grosir Min</th><th>Harga Grosir</th><th>Aksi</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- PEMBELIAN -->
+  <div id="purchase" class="tab-content">
+    <h2>Pembelian ke Supplier</h2>
+    <div class="form-grid">
+      <select id="purchaseItem"><option value="">Pilih Barang</option></select>
+      <input type="number" id="purchaseQty" placeholder="Jumlah" min="1">
+      <input type="number" id="purchasePrice" placeholder="Harga Beli per Unit">
+      <button class="btn-s" onclick="addPurchase()">Tambah Pembelian</button>
+    </div>
+    <table id="purchaseTable">
+      <thead><tr><th>Tanggal</th><th>Barang</th><th>Jumlah</th><th>Harga Beli</th><th>Total</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- PENJUALAN -->
+  <div id="sales" class="tab-content">
+    <h2>Penjualan Harian</h2>
+    <input type="date" id="saleDate" value="">
+    <div class="form-grid">
+      <select id="saleItem"><option value="">Pilih Barang</option></select>
+      <input type="number" id="saleQty" placeholder="Jumlah" min="1">
+      <button class="btn-s" onclick="addSale()">JUAL SEKARANG</button>
+    </div>
+    <table id="dailySalesTable">
+      <thead><tr><th>Waktu</th><th>Barang</th><th>Jumlah</th><th>Harga Jual</th><th>Diskon</th><th>Total</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- LAPORAN -->
+  <div id="report" class="tab-content">
+    <h2>Laporan Rugi/Laba</h2>
+    <div style="margin:20px 0;">
+      <input type="date" id="reportStart"> s/d <input type="date" id="reportEnd">
+      <button class="btn-p" onclick="generateReport()">Tampilkan</button>
+      <button class="btn-s" onclick="exportExcel()">Export Excel</button>
+    </div>
+    <div id="reportResult" style="background:white;padding:30px;border-radius:16px;"></div>
+  </div>
+
+  <!-- DATA -->
+  <div id="data" class="tab-content">
+    <h2>Manajemen Data</h2>
+    <div class="form-grid">
+      <button class="btn-p" onclick="backupData()">Backup Data</button>
+      <button class="btn-s" onclick="document.getElementById('restoreFile').click()">Restore Data</button>
+      <input type="file" id="restoreFile" accept=".json" style="display:none;" onchange="restoreData()">
+      <button class="btn-s" onclick="defaultData()">Default Data</button>
+      <button class="btn-d" onclick="deleteAllData()">Hapus Semua Data</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="fab" onclick="openTab('sales')"><i class="fas fa-cash-register"></i></div>
+
+<!-- MODAL -->
+<div id="itemModal" class="modal">
+  <div class="modal-content">
+    <h2 id="modalTitle">Tambah Barang</h2>
+    <div class="form-grid">
+      <input type="text" id="itemCode" placeholder="Kode">
+      <input type="text" id="itemName" placeholder="Nama Barang">
+      <input type="number" id="itemStock" placeholder="Stok Awal" value="0">
+      <input type="number" id="itemBuyPrice" placeholder="Harga Beli">
+      <input type="number" id="itemSellPrice" placeholder="Harga Jual Ecer">
+      <input type="number" id="itemWholesaleMin" placeholder="Min Qty Grosir" value="0">
+      <input type="number" id="itemWholesalePrice" placeholder="Harga Grosir">
+    </div>
+    <div style="margin-top:20px;">
+      <button class="btn-s" onclick="saveItem()">SIMPAN</button>
+      <button class="btn-d" onclick="closeModal()">BATAL</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// DATA
+let inventory = JSON.parse(localStorage.getItem("varsha_inventory")) || [];
+let purchases = JSON.parse(localStorage.getItem("varsha_purchases")) || [];
+let sales = JSON.parse(localStorage.getItem("varsha_sales")) || [];
+
+if (inventory.length === 0) {
+  inventory = [
+    {id:1, code:"A01", name:"Apel Fuji", stock:50, buyPrice:25000, sellPrice:35000, wholesaleMin:10, wholesalePrice:30000},
+    {id:2, code:"J01", name:"Jeruk Sunkist", stock:80, buyPrice:15000, sellPrice:22000, wholesaleMin:20, wholesalePrice:18000},
+    {id:3, code:"P01", name:"Pisang Ambon", stock:120, buyPrice:8000, sellPrice:15000, wholesaleMin:0, wholesalePrice:0}
+  ];
+  saveData();
+}
+
+function saveData() {
+  localStorage.setItem("varsha_inventory", JSON.stringify(inventory));
+  localStorage.setItem("varsha_purchases", JSON.stringify(purchases));
+  localStorage.setItem("varsha_sales", JSON.stringify(sales));
+}
+
+// AUTH & TAB
+function checkLogin() {
+  const user = sessionStorage.getItem("user");
+  if (!user) return location.href = "index.html";
+  const u = JSON.parse(user);
+  document.getElementById("username").textContent = u.username;
+  document.getElementById("role").textContent = u.role.toUpperCase();
+  if (u.role !== "admin") document.querySelectorAll(".admin-only").forEach(el => el.style.display = "none");
+}
+function logout() { if(confirm("Keluar?")) { sessionStorage.clear(); location.href="index.html"; }}
+function openTab(tab) {
+  document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
+  document.querySelectorAll("nav a").forEach(a => a.classList.remove("active"));
+  document.getElementById(tab).classList.add("active");
+  document.querySelector(`nav a[href="#${tab}"]`).classList.add("active");
+  if (tab === "purchase" || tab === "sales") populateSelects();
+}
+
+// INVENTORY
+let editId = null;
+function openModal(id = null) {
+  editId = id;
+  document.getElementById("modalTitle").textContent = id ? "Edit Barang" : "Tambah Barang";
+  if (id) {
+    const item = inventory.find(i => i.id === id);
+    ["itemCode","itemName","itemStock","itemBuyPrice","itemSellPrice","itemWholesaleMin","itemWholesalePrice"].forEach(field => {
+      document.getElementById(field).value = item[field.replace("item","").toLowerCase()] || "";
+    });
+  } else {
+    document.querySelectorAll("#itemModal input").forEach(i => i.value = i.id === "itemStock" || i.id === "itemWholesaleMin" ? "0" : "");
+  }
+  document.getElementById("itemModal").style.display = "flex";
+}
+function closeModal() { document.getElementById("itemModal").style.display = "none"; }
+function saveItem() {
+  const item = {
+    id: editId || Date.now(),
+    code: document.getElementById("itemCode").value.trim(),
+    name: document.getElementById("itemName").value.trim(),
+    stock: Number(document.getElementById("itemStock").value) || 0,
+    buyPrice: Number(document.getElementById("itemBuyPrice").value),
+    sellPrice: Number(document.getElementById("itemSellPrice").value),
+    wholesaleMin: Number(document.getElementById("itemWholesaleMin").value) || 0,
+    wholesalePrice: Number(document.getElementById("itemWholesalePrice").value) || 0
+  };
+  if (!item.code || !item.name || !item.buyPrice || !item.sellPrice) return alert("Isi field wajib!");
+  if (editId) inventory[inventory.findIndex(i => i.id === editId)] = item;
+  else inventory.push(item);
+  saveData();
+  renderInventory();
+  populateSelects();
+  updateDashboard();
+  closeModal();
+}
+function deleteItem(id) {
+  if (confirm("Hapus barang ini?")) {
+    inventory = inventory.filter(i => i.id !== id);
+    saveData();
+    renderInventory();
+    populateSelects();
+    updateDashboard();
+  }
+}
+function renderInventory() {
+  const tbody = document.querySelector("#inventoryTable tbody");
+  tbody.innerHTML = "";
+  inventory.forEach(item => {
+    tbody.innerHTML += `<tr>
+      <td>${item.code}</td><td>${item.name}</td><td ${item.stock<10?'style="color:red;font-weight:bold"':''}>${item.stock}</td>
+      <td>Rp ${item.buyPrice.toLocaleString()}</td><td>Rp ${item.sellPrice.toLocaleString()}</td>
+      <td>${item.wholesaleMin||'-'}</td><td>${item.wholesalePrice ? 'Rp '+item.wholesalePrice.toLocaleString() : '-'}</td>
+      <td><button class="btn-p" onclick="openModal(${item.id})">Edit</button>
+          <button class="btn-d" onclick="deleteItem(${item.id})">Hapus</button></td>
+    </tr>`;
+  });
+}
+function filterInventory() {
+  const q = document.getElementById("searchItem").value.toLowerCase();
+  document.querySelectorAll("#inventoryTable tbody tr").forEach(r => r.style.display = r.textContent.toLowerCase().includes(q) ? "" : "none");
+}
+
+// PEMBELIAN & PENJUALAN
+function populateSelects() {
+  ["purchaseItem", "saleItem"].forEach(id => {
+    const select = document.getElementById(id);
+    select.innerHTML = '<option value="">Pilih Barang</option>';
+    inventory.forEach(item => {
+      const opt = document.createElement("option");
+      opt.value = item.id;
+      opt.textContent = `${item.code} - ${item.name} (Stok: ${item.stock})`;
+      select.appendChild(opt);
+    });
+  });
+}
+function addPurchase() {
+  const item = inventory.find(i => i.id == document.getElementById("purchaseItem").value);
+  const qty = Number(document.getElementById("purchaseQty").value);
+  const price = Number(document.getElementById("purchasePrice").value);
+  if (!item || qty <= 0 || price <= 0) return alert("Isi data dengan benar!");
+  item.stock += qty;
+  item.buyPrice = price;
+  purchases.push({date: new Date().toLocaleDateString("id-ID"), name: item.name, qty, price, total: qty*price});
+  saveData();
+  renderPurchases();
+  renderInventory();
+  populateSelects();
+  document.getElementById("purchaseQty").value = document.getElementById("purchasePrice").value = "";
+}
+function renderPurchases() {
+  const tbody = document.querySelector("#purchaseTable tbody");
+  tbody.innerHTML = "";
+  purchases.forEach(p => {
+    tbody.innerHTML += `<tr><td>${p.date}</td><td>${p.name}</td><td>${p.qty}</td><td>Rp ${p.price.toLocaleString()}</td><td>Rp ${p.total.toLocaleString()}</td></tr>`;
+  });
+}
+function addSale() {
+  const item = inventory.find(i => i.id == document.getElementById("saleItem").value);
+  const qty = Number(document.getElementById("saleQty").value);
+  if (!item || qty <= 0 || qty > item.stock) return alert("Stok tidak cukup atau data salah!");
+  let price = item.sellPrice;
+  let discount = 0;
+  if (item.wholesaleMin > 0 && qty >= item.wholesaleMin) {
+    price = item.wholesalePrice;
+    discount = Math.round((1 - price/item.sellPrice)*100);
+  }
+  const total = qty * price;
+  item.stock -= qty;
+  sales.push({
+    date: document.getElementById("saleDate").value || new Date().toISOString().slice(0,10),
+    time: new Date().toLocaleTimeString("id-ID",{hour:'2-digit',minute:'2-digit'}),
+    name: item.name,
+    qty, price, discount, total
+  });
+  saveData();
+  renderSales();
+  renderInventory();
+  populateSelects();
+  updateDashboard();
+  document.getElementById("saleQty").value = "";
+}
+function renderSales() {
+  const tbody = document.querySelector("#dailySalesTable tbody");
+  tbody.innerHTML = "";
+  sales.slice().reverse().forEach(s => {
+    tbody.innerHTML += `<tr><td>${s.time}</td><td>${s.name}</td><td>${s.qty}</td><td>Rp ${s.price.toLocaleString()}</td><td>${s.discount}%</td><td>Rp ${s.total.toLocaleString()}</td></tr>`;
+  });
+}
+
+// LAPORAN
+function generateReport() {
+  const start = document.getElementById("reportStart").value;
+  const end = document.getElementById("reportEnd").value;
+  if (!start || !end) return alert("Pilih tanggal!");
+  let revenue = 0, cogs = 0;
+  sales.filter(s => s.date >= start && s.date <= end).forEach(s => {
+    revenue += s.total;
+    const item = inventory.find(i => i.name === s.name);
+    cogs += s.qty * (item?.buyPrice || 0);
+  });
+  const profit = revenue - cogs;
+  document.getElementById("reportResult").innerHTML = `
+    <h3>Laporan ${start} s/d ${end}</h3>
+    <p><strong>Total Penjualan:</strong> Rp ${revenue.toLocaleString()}</p>
+    <p><strong>HPP:</strong> Rp ${cogs.toLocaleString()}</p>
+    <p><strong>Laba Kotor:</strong> Rp ${profit.toLocaleString()}</p>
+    <p><strong>Margin:</strong> ${revenue>0 ? ((profit/revenue)*100).toFixed(1) : 0}%</p>
+  `;
+}
+function exportExcel() {
+  const start = document.getElementById("reportStart").value;
+  const end = document.getElementById("reportEnd").value;
+  if (!start || !end) return alert("Generate laporan dulu!");
+  const data = sales.filter(s => s.date >= start && s.date <= end).map(s => ({
+    Tanggal: s.date, Waktu: s.time, Barang: s.name, Jumlah: s.qty,
+    "Harga Jual": s.price, Diskon: s.discount+"%", Total: s.total
+  }));
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Penjualan");
+  XLSX.writeFile(wb, `Laporan_Varsha_${start}_sd_${end}.xlsx`);
+}
+
+// DASHBOARD
+function updateDashboard() {
+  const today = new Date().toISOString().slice(0,10);
+  const todaySalesTotal = sales.filter(s => s.date === today).reduce((a,b) => a + b.total, 0);
+  const todayCOGS = sales.filter(s => s.date === today).reduce((a,s) => a + s.qty * (inventory.find(i => i.name === s.name)?.buyPrice || 0), 0);
+  document.getElementById("totalItems").textContent = inventory.length;
+  document.getElementById("lowStock").textContent = inventory.filter(i => i.stock < 10).length;
+  document.getElementById("todaySales").textContent = "Rp " + todaySalesTotal.toLocaleString();
+  document.getElementById("todayProfit").textContent = "Rp " + (todaySalesTotal - todayCOGS).toLocaleString();
+}
+
+// DATA MANAGEMENT
+function backupData() {
+  const data = {
+    inventory: inventory,
+    purchases: purchases,
+    sales: sales,
+    timestamp: new Date().toISOString()
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `backup_varsha_${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  alert("Backup berhasil!");
+}
+
+function restoreData() {
+  const file = document.getElementById('restoreFile').files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (confirm("Apakah Anda yakin ingin mengembalikan data? Data saat ini akan diganti.")) {
+        inventory = data.inventory || [];
+        purchases = data.purchases || [];
+        sales = data.sales || [];
+        saveData();
+        renderInventory();
+        renderPurchases();
+        renderSales();
+        populateSelects();
+        updateDashboard();
+        alert("Restore berhasil!");
+      }
+    } catch (error) {
+      alert("File backup tidak valid!");
+    }
+  };
+  reader.readAsText(file);
+}
+
+function defaultData() {
+  if (confirm("Apakah Anda yakin ingin mengatur ulang ke data default? Semua data akan hilang.")) {
+    inventory = [
+      {id:1, code:"A01", name:"Apel Fuji", stock:50, buyPrice:25000, sellPrice:35000, wholesaleMin:10, wholesalePrice:30000},
+      {id:2, code:"J01", name:"Jeruk Sunkist", stock:80, buyPrice:15000, sellPrice:22000, wholesaleMin:20, wholesalePrice:18000},
+      {id:3, code:"P01", name:"Pisang Ambon", stock:120, buyPrice:8000, sellPrice:15000, wholesaleMin:0, wholesalePrice:0}
+    ];
+    purchases = [];
+    sales = [];
+    saveData();
+    renderInventory();
+    renderPurchases();
+    renderSales();
+    populateSelects();
+    updateDashboard();
+    alert("Data berhasil diatur ulang ke default!");
+  }
+}
+
+function deleteAllData() {
+  if (confirm("PERINGATAN: Ini akan menghapus SEMUA data secara permanen! Apakah Anda yakin?")) {
+    inventory = [];
+    purchases = [];
+    sales = [];
+    saveData();
+    renderInventory();
+    renderPurchases();
+    renderSales();
+    populateSelects();
+    updateDashboard();
+    alert("Semua data telah dihapus!");
+  }
+}
+
+// INIT
+document.addEventListener("DOMContentLoaded", () => {
+  checkLogin();
+  renderInventory();
+  renderPurchases();
+  renderSales();
+  populateSelects();
+  updateDashboard();
+  document.getElementById("saleDate").value = new Date().toISOString().slice(0,10);
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById("reportStart").value = document.getElementById("reportEnd").value = today;
+});
+</script>
+
+</body>
+</html>
